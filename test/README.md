@@ -58,13 +58,13 @@ Before starting, ensure you have the following installed:
     ```bash
     kubereport --report=general
     ```
-    Sample Output: [General Report](test/output/General_Report.png)
+    Sample Output: [General Report](output/General_Report.png)
 
 2. **Generate a Detailed Report**:
     ```bash
     kubereport --report=detailed
     ```
-    Sample Output: [Detailed Report](test/output/Detailed_Report.png)
+    Sample Output: [Detailed Report](output/Detailed_Report.png)
 
 3. **Generate Report for Target Cluster**:
     ```bash
