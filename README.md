@@ -107,7 +107,7 @@ For the Helm chart required for KubeReport deployment, please refer to this [Kub
 
 Want to discuss KubeReport features with other users or show your support for this tool?
 
-- **Invite**: Get your [KubeReport Slack Invite](https://join.slack.com/t/newworkspace-lnq1467/shared_invite/zt-2rh7j3whw-We_16ybaeK5tNjRXGenX_Q).
+- **Invite**: Get your [KubeReport Slack Invite](https://join.slack.com/t/kubesuite/shared_invite/zt-2rh7j3whw-We_16ybaeK5tNjRXGenX_Q).
 - **Slack Channel**: Join the conversation on [KubeReport Slack](https://kubesuite.slack.com/archives/C07PPLEUR7B).
 
 You can also connect with us on [LinkedIn](https://www.linkedin.com/company/kubesuite/) to stay updated and engage with the community.
