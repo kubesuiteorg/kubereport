@@ -122,13 +122,13 @@ func GeneratePDF(kubeconfigPath string) (string, string, error) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
 
-	imagePath := "assets/kubereport.png"
-	imageWidth := 60.0  //  width in mm
-	imageHeight := 18.0 //  height in mm
-	pdf.Image(imagePath, 10, 10, imageWidth, imageHeight, false, "", 0, "")
+	// Set font and add the title text
+	pdf.SetFont("Arial", "B", 18)
+	pdf.Ln(10)
+	pdf.Cell(40, 10, "KUBEREPORT")
+	pdf.Ln(15)
 
 	pdf.SetFont("Arial", "B", 18)
-	pdf.Ln(imageHeight + 4)
 	pdf.Cell(40, 10, "Kubernetes Cluster Qualification Report")
 	pdf.Ln(10)
 	pdf.SetFont("Arial", "", 12)
