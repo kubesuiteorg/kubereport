@@ -32,13 +32,13 @@ func GeneratePodDistributionReport(pdf *gofpdf.Fpdf, clientset *kubernetes.Clien
 	pdf.Cell(0, 10, "Pod Distribution By Namespace")
 	pdf.Ln(10)
 
-	colWidth := 95.0
+	colWidth := 130.0
 
 	pdf.SetFont("Arial", "B", 10)
 	pdf.CellFormat(colWidth, 10, "Name", "1", 0, "L", false, 0, "")
 	pdf.CellFormat(30, 10, "Value", "1", 1, "L", false, 0, "")
 
-	pdf.SetFont("Arial", "", 10)
+	pdf.SetFont("Arial", "", 8)
 	for ns, count := range namespaceCounts {
 		pdf.CellFormat(colWidth, 10, ns, "1", 0, "L", false, 0, "")
 		pdf.CellFormat(30, 10, fmt.Sprintf("%d pods", count), "1", 1, "L", false, 0, "")
@@ -53,7 +53,7 @@ func GeneratePodDistributionReport(pdf *gofpdf.Fpdf, clientset *kubernetes.Clien
 	pdf.CellFormat(colWidth, 10, "Node", "1", 0, "L", false, 0, "")
 	pdf.CellFormat(30, 10, "Value", "1", 1, "L", false, 0, "")
 
-	pdf.SetFont("Arial", "", 10)
+	pdf.SetFont("Arial", "", 8)
 	for node, count := range nodeCounts {
 		pdf.CellFormat(colWidth, 10, node, "1", 0, "L", false, 0, "")
 		pdf.CellFormat(30, 10, fmt.Sprintf("%d pods", count), "1", 1, "L", false, 0, "")

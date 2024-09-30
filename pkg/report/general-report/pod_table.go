@@ -13,7 +13,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// PodResourceUsage holds the resource usage data for a pod.
 type PodResourceUsage struct {
 	Name                 string
 	RequestedCPUInMillis int64
@@ -22,9 +21,7 @@ type PodResourceUsage struct {
 	LimitMemoryInMi      int64
 }
 
-// Generates a report of pod resource usage.
 func GeneratePodResourceUsageTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clientset) error {
-	// Fetch pods
 	podList, err := clientset.CoreV1().Pods(v1.NamespaceAll).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("error fetching pods: %v", err)
@@ -32,11 +29,9 @@ func GeneratePodResourceUsageTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clien
 
 	var podData []PodResourceUsage
 
-	// Iterate over pods to get their resource information
 	for _, pod := range podList.Items {
 		podName := pod.Name
 
-		// Initialize counters for requested and limit values
 		totalRequestedCPU := resource.NewQuantity(0, resource.DecimalSI)
 		totalRequestedMemory := resource.NewQuantity(0, resource.BinarySI)
 		totalLimitCPU := resource.NewQuantity(0, resource.DecimalSI)
@@ -54,7 +49,6 @@ func GeneratePodResourceUsageTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clien
 			totalLimitMemory.Add(limitMemory)
 		}
 
-		// Convert to milli values and MiB
 		requestedCPUInMillis := totalRequestedCPU.MilliValue()
 		requestedMemoryInMi := totalRequestedMemory.ScaledValue(resource.Mega)
 		limitCPUInMillis := totalLimitCPU.MilliValue()
@@ -69,7 +63,6 @@ func GeneratePodResourceUsageTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clien
 		})
 	}
 
-	// Sort pods by CPU usage (or any other metric) in descending order
 	sort.Slice(podData, func(i, j int) bool {
 		return podData[i].RequestedCPUInMillis > podData[j].RequestedCPUInMillis
 	})
@@ -83,51 +76,48 @@ func GeneratePodResourceUsageTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clien
 		pdf.AddPage()
 	}
 
-	colWidth := 38.0
+	// Define column widths
+	colWidths := []float64{90.0, 25.0, 25.0, 25.0, 25.0}
+	headers := []string{
+		"Pod Name",
+		"CPU Lim(mCPU)",
+		"CPU Req(mCPU)",
+		"Memory Lim(MiB)",
+		"Memory Req(MiB)",
+	}
 
-	// Function to print table headers
+	// Function to print the headers
 	printHeaders := func() {
 		pdf.SetFont("Arial", "B", 8)
-		headers := []string{
-			"Pod Name",
-			"CPU mC req",
-			"CPU mC limit",
-			"Mem MiB req",
-			"Mem MiB limit",
+		for i, header := range headers {
+			pdf.CellFormat(colWidths[i], 8, header, "1", 0, "C", false, 0, "")
 		}
-		for _, header := range headers {
-			x, y := pdf.GetXY()
-			pdf.MultiCell(colWidth, 8, header, "1", "C", false)
-			pdf.SetXY(x+colWidth, y)
-		}
-		pdf.Ln(-1)
+		pdf.Ln(8)
 	}
 
 	printHeaders()
 
-	// Define a function to handle row addition
-	addRow := func(podName string, requestedCPUInMillis int64, limitCPUInMillis int64, requestedMemoryInMi int64, limitMemoryInMi int64) {
+	addRow := func(podName string, limitCPUInMillis int64, requestedCPUInMillis int64, limitMemoryInMi int64, requestedMemoryInMi int64) {
 		_, pageHeight := pdf.GetPageSize()
 		if pdf.GetY() > pageHeight-40 {
 			pdf.AddPage()
 			printHeaders()
 		}
 
-		// Add pod data to table in a single row
-		pdf.SetFont("Arial", "", 10)
-		x, y := pdf.GetXY()
-		pdf.MultiCell(colWidth, 8, podName, "1", "L", false)
-		height := pdf.GetY() - y
+		pdf.SetFont("Arial", "", 8)
 
-		pdf.SetXY(x+colWidth, y)
-		pdf.CellFormat(colWidth, height, strconv.Itoa(int(requestedCPUInMillis)), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidth, height, strconv.Itoa(int(limitCPUInMillis)), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidth, height, strconv.Itoa(int(requestedMemoryInMi)), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidth, height, strconv.Itoa(int(limitMemoryInMi)), "1", 1, "C", false, 0, "")
+		// Print the pod name
+		pdf.CellFormat(colWidths[0], 8, podName, "1", 0, "L", false, 0, "")
+
+		// Print CPU and Memory values
+		pdf.CellFormat(colWidths[1], 8, strconv.Itoa(int(limitCPUInMillis)), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(colWidths[2], 8, strconv.Itoa(int(requestedCPUInMillis)), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(colWidths[3], 8, strconv.Itoa(int(limitMemoryInMi)), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(colWidths[4], 8, strconv.Itoa(int(requestedMemoryInMi)), "1", 1, "C", false, 0, "")
 	}
 
 	for _, pod := range podData {
-		addRow(pod.Name, pod.RequestedCPUInMillis, pod.LimitCPUInMillis, pod.RequestedMemoryInMi, pod.LimitMemoryInMi)
+		addRow(pod.Name, pod.LimitCPUInMillis, pod.RequestedCPUInMillis, pod.LimitMemoryInMi, pod.RequestedMemoryInMi)
 	}
 
 	return nil

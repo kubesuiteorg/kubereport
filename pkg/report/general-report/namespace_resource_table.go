@@ -11,22 +11,25 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// Generates a table for namespace resource usage.
 func GenerateNamespaceTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clientset) error {
+	printTableHeaders := func() {
+		pdf.SetFont("Arial", "B", 8)
+		headers := []string{
+			"Namespace",
+			"CPU Lim(mCPU)",
+			"CPU Req(mCPU)",
+			"Memory Lim(MiB)",
+			"Memory Req(MiB)",
+		}
+		colWidths := []float64{90.0, 25.0, 25.0, 25.0, 25.0} // Set different widths for each column
 
-	pdf.SetFont("Arial", "B", 10)
-	headers := []string{
-		"Namespace",
-		"CPU Req (mCPU)",
-		"CPU Lim (mCPU)",
-		"Memory Req (MiB)",
-		"Memory Lim (MiB)",
+		for i, header := range headers {
+			pdf.CellFormat(colWidths[i], 8, header, "1", 0, "C", false, 0, "")
+		}
+		pdf.Ln(8)
 	}
-	colWidth := 38.0
-	for _, header := range headers {
-		pdf.CellFormat(colWidth, 8, header, "1", 0, "C", false, 0, "")
-	}
-	pdf.Ln(8)
+
+	printTableHeaders()
 
 	totalCPURequests := resource.NewMilliQuantity(0, resource.DecimalSI)
 	totalCPULimits := resource.NewMilliQuantity(0, resource.DecimalSI)
@@ -74,33 +77,30 @@ func GenerateNamespaceTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clientset) e
 
 		rowHeight := 8.0
 		_, pageHeight := pdf.GetPageSize()
-		if pdf.GetY()+rowHeight > pageHeight-20 {
+		margin := 20.0
+
+		neededHeight := rowHeight
+		startY := pdf.GetY()
+
+		if startY+neededHeight > pageHeight-margin {
 			pdf.AddPage()
-			pdf.SetFont("Arial", "B", 10)
-			for _, header := range headers {
-				pdf.CellFormat(colWidth, 8, header, "1", 0, "C", false, 0, "")
-			}
-			pdf.Ln(8)
+			printTableHeaders() // Reprint headers on the new page
 		}
 
-		pdf.SetFont("Arial", "", 10)
-		x, y := pdf.GetXY()
-		pdf.MultiCell(colWidth, 8, ns.Name, "1", "L", false)
-		height := pdf.GetY() - y
-
-		pdf.SetXY(x+colWidth, y)
-		pdf.CellFormat(colWidth, height, strconv.Itoa(int(nsCPURequests.MilliValue())), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidth, height, strconv.Itoa(int(nsCPULimits.MilliValue())), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidth, height, fmt.Sprintf("%.2f", float64(nsMemoryRequests.Value())/1024/1024), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidth, height, fmt.Sprintf("%.2f", float64(nsMemoryLimits.Value())/1024/1024), "1", 1, "C", false, 0, "")
+		pdf.SetFont("Arial", "", 8)
+		pdf.CellFormat(90.0, rowHeight, ns.Name, "1", 0, "L", false, 0, "")
+		pdf.CellFormat(25.0, rowHeight, strconv.Itoa(int(nsCPULimits.MilliValue())), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(25.0, rowHeight, strconv.Itoa(int(nsCPURequests.MilliValue())), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(25.0, rowHeight, fmt.Sprintf("%.2f", float64(nsMemoryLimits.Value())/1024/1024), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(25.0, rowHeight, fmt.Sprintf("%.2f", float64(nsMemoryRequests.Value())/1024/1024), "1", 1, "C", false, 0, "")
 	}
 
-	pdf.SetFont("Arial", "B", 10)
-	pdf.CellFormat(colWidth, 8, "Total", "1", 0, "L", false, 0, "")
-	pdf.CellFormat(colWidth, 8, strconv.Itoa(int(totalCPURequests.MilliValue())), "1", 0, "C", false, 0, "")
-	pdf.CellFormat(colWidth, 8, strconv.Itoa(int(totalCPULimits.MilliValue())), "1", 0, "C", false, 0, "")
-	pdf.CellFormat(colWidth, 8, fmt.Sprintf("%.2f", float64(totalMemoryRequests.Value())/1024/1024), "1", 0, "C", false, 0, "")
-	pdf.CellFormat(colWidth, 8, fmt.Sprintf("%.2f", float64(totalMemoryLimits.Value())/1024/1024), "1", 1, "C", false, 0, "")
+	pdf.SetFont("Arial", "B", 8)
+	pdf.CellFormat(90.0, 8, "Total", "1", 0, "L", false, 0, "")
+	pdf.CellFormat(25.0, 8, strconv.Itoa(int(totalCPULimits.MilliValue())), "1", 0, "C", false, 0, "")
+	pdf.CellFormat(25.0, 8, strconv.Itoa(int(totalCPURequests.MilliValue())), "1", 0, "C", false, 0, "")
+	pdf.CellFormat(25.0, 8, fmt.Sprintf("%.2f", float64(totalMemoryLimits.Value())/1024/1024), "1", 0, "C", false, 0, "")
+	pdf.CellFormat(25.0, 8, fmt.Sprintf("%.2f", float64(totalMemoryRequests.Value())/1024/1024), "1", 1, "C", false, 0, "")
 
 	return nil
 }

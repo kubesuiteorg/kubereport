@@ -20,22 +20,29 @@ func GenerateNodeSummaryTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clientset)
 		return fmt.Errorf("error fetching nodes: %v", err)
 	}
 
-	colWidth := 28.0
+	// Set column widths
+	colWidths := []float64{78.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}
 	headers := []string{
-		"Node Name [Status]",
-		"CPU Allo (mCPU)",
-		"Memory Allo (MiB)",
-		"CPU Req (mCPU)",
-		"CPU Lim (mCPU)",
-		"Memory Req (MiB)",
-		"Memory Lim (MiB)",
+		"Node Name[Status]",
+		"CPU Allo(mCPU)",
+		"Memory Allo(MiB)",
+		"CPU Lim(mCPU)",
+		"CPU Req(mCPU)",
+		"Memory Lim(MiB)",
+		"Memory Req(MiB)",
 	}
 
-	pdf.SetFont("Arial", "B", 8)
-	for _, header := range headers {
-		pdf.CellFormat(colWidth, 8, header, "1", 0, "C", false, 0, "")
+	// Function to print the headers
+	printHeaders := func() {
+		pdf.SetFont("Arial", "B", 6)
+		for i, header := range headers {
+			pdf.CellFormat(colWidths[i], 8, header, "1", 0, "C", false, 0, "")
+		}
+		pdf.Ln(8)
 	}
-	pdf.Ln(-1)
+
+	// Print the headers initially
+	printHeaders()
 
 	// Iterate over nodes to get their resource information
 	for _, node := range nodeList.Items {
@@ -97,19 +104,23 @@ func GenerateNodeSummaryTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clientset)
 		requestedMemoryInMi := totalRequestedMemory.ScaledValue(resource.Mega)
 		limitMemoryInMi := totalLimitMemory.ScaledValue(resource.Mega)
 
-		pdf.SetFont("Arial", "", 8)
+		// Check for page break before adding a new row
+		_, pageHeight := pdf.GetPageSize()
+		if pdf.GetY() > pageHeight-40 { // Check if there's enough space for one more row
+			pdf.AddPage()
+			printHeaders() // Reprint headers on new page
+		}
 
-		x, y := pdf.GetXY()
-		pdf.MultiCell(colWidth, 8, nodeNameWithStatus, "1", "L", false)
-		height := pdf.GetY() - y
+		pdf.SetFont("Arial", "", 6)
 
-		pdf.SetXY(x+colWidth, y)
-		pdf.CellFormat(colWidth, height, strconv.Itoa(int(allocatableCPUInMillis)), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidth, height, strconv.Itoa(int(allocatableMemoryInMi)), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidth, height, strconv.Itoa(int(requestedCPUInMillis)), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidth, height, strconv.Itoa(int(limitCPUInMillis)), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidth, height, strconv.Itoa(int(requestedMemoryInMi)), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidth, height, strconv.Itoa(int(limitMemoryInMi)), "1", 1, "C", false, 0, "")
+		// Print node information in the table
+		pdf.CellFormat(colWidths[0], 8, nodeNameWithStatus, "1", 0, "L", false, 0, "")
+		pdf.CellFormat(colWidths[1], 8, strconv.Itoa(int(allocatableCPUInMillis)), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(colWidths[2], 8, strconv.Itoa(int(allocatableMemoryInMi)), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(colWidths[3], 8, strconv.Itoa(int(limitCPUInMillis)), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(colWidths[4], 8, strconv.Itoa(int(requestedCPUInMillis)), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(colWidths[5], 8, strconv.Itoa(int(limitMemoryInMi)), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(colWidths[6], 8, strconv.Itoa(int(requestedMemoryInMi)), "1", 1, "C", false, 0, "")
 	}
 
 	return nil
