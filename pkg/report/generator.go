@@ -247,7 +247,7 @@ func GenerateCSV(kubeconfigPath string) (string, string, error) {
 	defer writer.Flush()
 
 	// Add image reference at the top of the CSV
-	if err := writer.Write([]string{"KUBE☸️REPORT"}); err != nil {
+	if err := writer.Write([]string{"KUBEREPORT"}); err != nil {
 		if logger != nil {
 			logger.Printf("Failed to write KUBEREPORT to CSV: %v\n", err)
 		}

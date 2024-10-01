@@ -17,7 +17,14 @@ func GenerateNamespaceSummaryTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clien
 		return fmt.Errorf("error fetching namespaces: %v", err)
 	}
 
-	colWidth := 40.0
+	// Define column widths for each header
+	colWidths := []float64{
+		90.0,
+		30.0,
+		30.0,
+		30.0,
+	}
+
 	headers := []string{
 		"Namespace",
 		"Deployments",
@@ -25,11 +32,17 @@ func GenerateNamespaceSummaryTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clien
 		"Services",
 	}
 
-	pdf.SetFont("Arial", "B", 8)
-	for _, header := range headers {
-		pdf.CellFormat(colWidth, 8, header, "1", 0, "C", false, 0, "")
+	// Function to render table headers
+	renderHeaders := func() {
+		pdf.SetFont("Arial", "B", 8)
+		for i, header := range headers {
+			pdf.CellFormat(colWidths[i], 8, header, "1", 0, "C", false, 0, "")
+		}
+		pdf.Ln(-1)
 	}
-	pdf.Ln(-1)
+
+	// Add headers to the first page
+	renderHeaders()
 
 	// Iterate over namespaces to get resource information
 	for _, ns := range namespaceList.Items {
@@ -54,11 +67,22 @@ func GenerateNamespaceSummaryTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clien
 		}
 		serviceCount := len(services.Items)
 
+		// Check if we need to add a new page
+		rowHeight := 8.0
+		_, pageHeight := pdf.GetPageSize()
+		if pdf.GetY()+rowHeight > pageHeight-20 {
+			pdf.AddPage()
+			renderHeaders() // Reprint the headers on the new page
+		}
+
+		// Print data for each namespace
 		pdf.SetFont("Arial", "", 8)
-		pdf.CellFormat(colWidth, 8, ns.Name, "1", 0, "L", false, 0, "")
-		pdf.CellFormat(colWidth, 8, fmt.Sprintf("%d", deploymentCount), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidth, 8, fmt.Sprintf("%d", podCount), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidth, 8, fmt.Sprintf("%d", serviceCount), "1", 1, "C", false, 0, "")
+
+		// Print the Namespace column using CellFormat
+		pdf.CellFormat(colWidths[0], rowHeight, ns.Name, "1", 0, "L", false, 0, "")
+		pdf.CellFormat(colWidths[1], rowHeight, fmt.Sprintf("%d", deploymentCount), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(colWidths[2], rowHeight, fmt.Sprintf("%d", podCount), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(colWidths[3], rowHeight, fmt.Sprintf("%d", serviceCount), "1", 1, "C", false, 0, "")
 	}
 
 	return nil
