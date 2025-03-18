@@ -20,13 +20,15 @@ var (
 	kubeconfig  string
 	schedule    string
 	reportType  string
+	release     string
+	teamLabel   string
 	smtpServer  string
 	smtpPort    string
 	useTLS      bool
 	showVersion bool
 )
 
-var version = "v0.1.1"
+var version = "v0.2.0"
 
 var rootCmd = &cobra.Command{
 	Use:   "kubereport",
@@ -63,11 +65,13 @@ func runReportGeneration() {
 		err         error
 	)
 
-	switch reportType {
-	case "detailed":
+	if release != "" {
+		// Generate the release-specific PDF report
+		clusterName, outputPath, err = report.GenerateReleasePDF(kubeconfig, release, teamLabel)
+	} else if reportType == "detailed" {
 		// Generate the CSV report
 		clusterName, outputPath, err = report.GenerateCSV(kubeconfig)
-	default:
+	} else {
 		// Generate the PDF report
 		clusterName, outputPath, err = report.GeneratePDF(kubeconfig)
 	}
@@ -102,6 +106,8 @@ func init() {
 	rootCmd.Flags().StringVarP(&kubeconfig, "kubeconfig", "k", "", "Path to kubeconfig file.")
 	rootCmd.Flags().StringVarP(&schedule, "schedule", "t", "", "Cron schedule for report generation (e.g., '* * * * *').")
 	rootCmd.Flags().StringVarP(&reportType, "report", "d", "general", "Report type: 'general' (PDF) or 'detailed' (CSV).")
+	rootCmd.Flags().StringVarP(&release, "release", "e", "", "Specify the release version (e.g., v1.0.0).")
+	rootCmd.Flags().StringVarP(&teamLabel, "team-label", "l", "", "Specify the team metadata label given in the Deployment definition.")
 	rootCmd.Flags().StringVarP(&smtpServer, "smtp-server", "m", "", "SMTP server address (e.g., smtp.gmail.com).")
 	rootCmd.Flags().StringVarP(&smtpPort, "smtp-port", "o", "", "SMTP server port (default: 587).")
 	rootCmd.Flags().BoolVarP(&useTLS, "use-tls", "u", true, "Enable TLS for SMTP connection (default: true).")
