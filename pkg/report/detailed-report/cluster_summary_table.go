@@ -33,6 +33,18 @@ func GenerateClusterSummaryCSV(writer *csv.Writer, clientset *kubernetes.Clients
 		return fmt.Errorf("error fetching pods: %v", err)
 	}
 
+	// Initialize pod counters
+	totalRunningPods := 0
+	totalNonRunningPods := 0
+
+	for _, pod := range podList.Items {
+		if pod.Status.Phase == v1.PodRunning {
+			totalRunningPods++
+		} else {
+			totalNonRunningPods++
+		}
+	}
+
 	totalAllocatableCPU := resource.NewQuantity(0, resource.DecimalSI)
 	totalAllocatableMemory := resource.NewQuantity(0, resource.BinarySI)
 	totalAvailableCPU := resource.NewQuantity(0, resource.DecimalSI)
@@ -82,6 +94,16 @@ func GenerateClusterSummaryCSV(writer *csv.Writer, clientset *kubernetes.Clients
 	totalPodsRow := []string{"TOTAL PODS", strconv.Itoa(len(podList.Items)), ""}
 	if err := writer.Write(totalPodsRow); err != nil {
 		return fmt.Errorf("error writing Total Pods row: %v", err)
+	}
+
+	runningPodsRow := []string{"RUNNING PODS", strconv.Itoa(totalRunningPods), ""}
+	if err := writer.Write(runningPodsRow); err != nil {
+		return fmt.Errorf("error writing Running Pods row: %v", err)
+	}
+
+	nonRunningPodsRow := []string{"NON-RUNNING PODS", strconv.Itoa(totalNonRunningPods), ""}
+	if err := writer.Write(nonRunningPodsRow); err != nil {
+		return fmt.Errorf("error writing Non-Running Pods row: %v", err)
 	}
 
 	emptyRow := []string{"", "", ""}

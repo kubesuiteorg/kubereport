@@ -11,7 +11,7 @@ import (
 )
 
 // Generates a report of pod distribution by namespace and node.
-func GeneratePodDistributionReport(pdf *gofpdf.Fpdf, clientset *kubernetes.Clientset) error {
+func GeneratePodDistributionTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clientset) error {
 	// Fetch pods
 	podList, err := clientset.CoreV1().Pods(v1.NamespaceAll).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {

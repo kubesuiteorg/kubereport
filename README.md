@@ -2,11 +2,16 @@
 
 # KubeReport 
 
-KubeReport is a versatile CLI tool for generating both general and detailed reports on Kubernetes clusters. It enables users to easily send these reports via the command line and securely store them in the cloud. With KubeReport, managing cluster insights has never been more efficient and accessible.
+KubeReport is a versatile CLI tool for generating general, detailed, and release reports on Kubernetes clusters. It enables users to easily send these reports via the command line and securely store them in the cloud. With KubeReport, managing cluster insights has never been more efficient and accessible.
    
 ## Demo
 
 You can view the demo in the [test](test/README.md).
+
+### Sample Reports  
+1. [Release Report](test/output/Release_Report.png)  
+2. [General Report](test/output/General_Report.png)
+3. [Detailed Report](test/output/Detailed_Report.png)
 
 ## Your Support Matters
 
@@ -82,6 +87,8 @@ kubereport --help
 |-------------------|-----------|---------------|---------------------------------------------------------------------------------------|
 | `--version`       | `-v`      | `false`       | Displays the current version of KubeReport          .                                 |
 | `--report`        | `-d`      | `general`     | Type of report to generate ( general [default], detailed ). |
+| `--release`       | `-e`      | `""`          | Specify the release version (e.g., v1.0.0). |
+| `--team-label`    | `-l`      | `""`          | Specify the team metadata label defined in the Deployment configuration for the release report. |
 | `--kubeconfig`    | `-k`      | `""`          | File path to the kubeconfig file used for accessing the Kubernetes cluster. Defaults to `$KUBECONFIG` or `~/.kube/config`. |
 | `--schedule`      | `-t`      | `""`          | Cron expression to schedule the automatic generation and sending of reports (e.g., '* * * * *' for every minute). |
 | `--recipient`     | `-r`      | `""`          | The email address where the generated report will be sent.                            |

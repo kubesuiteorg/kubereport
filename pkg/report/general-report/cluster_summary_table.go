@@ -37,9 +37,26 @@ func GenerateClusterSummaryTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clients
 	totalNodes := len(nodeList.Items)
 	totalPods := len(podList.Items)
 
+	// Count Running and Not Running Pods
+	runningPods := 0
+	notRunningPods := 0
+
+	for _, pod := range podList.Items {
+		if pod.Status.Phase == v1.PodRunning {
+			runningPods++
+		} else {
+			notRunningPods++
+		}
+	}
+
 	pdf.SetFont("Arial", "B", 12)
 	pdf.CellFormat(75, 9, fmt.Sprintf("Total Nodes: %d", totalNodes), "1", 0, "C", false, 0, "")
 	pdf.CellFormat(75, 9, fmt.Sprintf("Total Pods: %d", totalPods), "1", 1, "C", false, 0, "")
+	pdf.Ln(5) // Add some space after the line
+
+	pdf.SetFont("Arial", "B", 12)
+	pdf.CellFormat(75, 9, fmt.Sprintf("Running Pods: %d", runningPods), "1", 0, "C", false, 0, "")
+	pdf.CellFormat(75, 9, fmt.Sprintf("Non-Running Pods: %d", notRunningPods), "1", 1, "C", false, 0, "")
 	pdf.Ln(5) // Add some space after the line
 
 	// Initialize total resources

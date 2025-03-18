@@ -10,6 +10,7 @@ import (
 
 	detailed "github.com/kubesuiteorg/kubereport/pkg/report/detailed-report"
 	general "github.com/kubesuiteorg/kubereport/pkg/report/general-report"
+	release "github.com/kubesuiteorg/kubereport/pkg/report/release-report"
 
 	"github.com/jung-kurt/gofpdf/v2"
 	"k8s.io/client-go/kubernetes"
@@ -110,7 +111,9 @@ func GeneratePDF(kubeconfigPath string) (string, string, error) {
 		{"Node Resource Details", general.GenerateNodeSummaryTable, nil},
 		{"Namespace Resource Details", general.GenerateNamespaceTable, nil},
 		{"Namespace Summary ", general.GenerateNamespaceSummaryTable, nil},
-		{"Pod Distribution Details", general.GeneratePodDistributionReport, nil},
+		{"Pod Distribution Details", general.GeneratePodDistributionTable, nil},
+		{"Deployment Summary", general.GenerateDeploymentReadyTable, nil},
+		{"Application Versions", general.GenerateDeploymentImageTable, nil},
 		{"Pod Resource Details", general.GeneratePodResourceUsageTable, nil},
 		{"Pod Status", general.GeneratePodDetailsTable, nil},
 	}
@@ -119,13 +122,21 @@ func GeneratePDF(kubeconfigPath string) (string, string, error) {
 	formattedTime := currentTime.Format("02-01-2006-15-04")
 	outputPath := fmt.Sprintf("kubernetes_cluster_report_%s.pdf", formattedTime)
 
-	pdf := gofpdf.New("P", "mm", "A4", "")
+	//pdf := gofpdf.New("L", "mm", "A4", "")
+	pdf := gofpdf.NewCustom(&gofpdf.InitType{
+		Size: gofpdf.SizeType{Wd: 220, Ht: 297}, // Slightly wider A4 in Portrait
+	})
 	pdf.AddPage()
 
 	// Set font and add the title text
 	pdf.SetFont("Arial", "B", 18)
 	pdf.Ln(10)
 	pdf.Cell(40, 10, "KUBEREPORT")
+
+	pdf.SetFont("Arial", "", 12)
+	pdf.SetX(160)                                                // Adjust the X position to the right (tune this value as needed)
+	pdf.Cell(0, 10, time.Now().Format("Date: 02/01/2006 15:04")) // Format: DD/MM/YYYY HH:MM
+
 	pdf.Ln(15)
 
 	pdf.SetFont("Arial", "B", 18)
@@ -148,7 +159,8 @@ func GeneratePDF(kubeconfigPath string) (string, string, error) {
 			}
 		}
 
-		separator := strings.Repeat("-", 160)
+		pdf.SetFont("Courier", "", 12)
+		separator := strings.Repeat("-", 76)
 		pdf.Ln(10)
 		pdf.Cell(0, 0, separator)
 		pdf.Ln(4)
@@ -281,6 +293,91 @@ func GenerateCSV(kubeconfigPath string) (string, string, error) {
 
 	if logger != nil {
 		logger.Println("CSV report generated successfully.")
+	}
+	return clusterName, outputPath, nil
+}
+
+func GenerateReleasePDF(kubeconfigPath string, releaseVersion string, teamLabel string) (string, string, error) {
+	if logger != nil {
+		logger.Println("Starting Release PDF report generation...")
+	}
+
+	config, clusterName, err := getClientConfig(kubeconfigPath)
+	if err != nil {
+		if logger != nil {
+			logger.Printf("Error getting client config: %v\n", err)
+		}
+		return "", "", err
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		if logger != nil {
+			logger.Printf("Failed to create Kubernetes clientset: %v\n", err)
+		}
+		return "", "", fmt.Errorf("failed to create Kubernetes clientset: %v", err)
+	}
+
+	//sections := []reportSection{
+	//	{"", release.GenerateDeploymentImageTable, nil},
+	//}
+	sections := []reportSection{
+		{
+			"Application Versions",
+			func(pdf *gofpdf.Fpdf, clientset *kubernetes.Clientset) error {
+				return release.GenerateDeploymentImageTable(pdf, clientset, releaseVersion, teamLabel)
+			},
+			nil,
+		},
+	}
+
+	currentTime := time.Now()
+	formattedTime := currentTime.Format("02-01-2006-15-04")
+	outputPath := fmt.Sprintf("kubernetes_cluster_report_%s.pdf", formattedTime)
+
+	//pdf := gofpdf.New("L", "mm", "A4", "")
+	pdf := gofpdf.NewCustom(&gofpdf.InitType{
+		Size: gofpdf.SizeType{Wd: 330, Ht: 200}, // Slightly wider A4 in Portrait
+	})
+	pdf.AddPage()
+
+	// Set font and add the title text
+	pdf.SetFont("Arial", "B", 18)
+	pdf.Ln(10)
+	pdf.Cell(40, 10, "KUBEREPORT")
+
+	pdf.SetFont("Arial", "", 12)
+	pdf.SetX(270)                                                // Adjust the X position to the right (tune this value as needed)
+	pdf.Cell(0, 10, time.Now().Format("Date: 02/01/2006 15:04")) // Format: DD/MM/YYYY HH:MM
+
+	pdf.Ln(15)
+
+	// Release Information in the middle
+	pdf.SetFont("Arial", "B", 14)
+	pdf.CellFormat(0, 10, fmt.Sprintf("Release: %s", releaseVersion), "", 1, "C", false, 0, "")
+	pdf.Ln(1)
+
+	for _, section := range sections {
+		if section.PDFGenerator != nil {
+			if err := section.PDFGenerator(pdf, clientset); err != nil {
+				if logger != nil {
+					logger.Printf("Failed to generate %s: %v\n", section.Title, err)
+				}
+				return "", "", fmt.Errorf("failed to generate %s: %v", section.Title, err)
+			}
+		}
+
+	}
+
+	if err := pdf.OutputFileAndClose(outputPath); err != nil {
+		if logger != nil {
+			logger.Printf("Failed to save PDF file: %v\n", err)
+		}
+		return "", "", fmt.Errorf("failed to save PDF file: %v", err)
+	}
+
+	if logger != nil {
+		logger.Println("Release PDF report generated successfully.")
 	}
 	return clusterName, outputPath, nil
 }

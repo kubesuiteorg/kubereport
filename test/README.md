@@ -48,6 +48,8 @@ Before starting, ensure you have the following installed:
 
     You should see the `metrics-server` deployment listed with the desired number of pods running.
 
+## Alternatively, you can connect to any cloud Kubernetes cluster.
+
 ## Generating Reports with KubeReport
 
 1. **Generate a General Report**:
@@ -66,17 +68,23 @@ Before starting, ensure you have the following installed:
     ```
     Sample Output: [Detailed Report](output/Detailed_Report.png)
 
-3. **Generate Report for Target Cluster**:
+3. **Generate a Release Report**:
+    ```bash
+    kubereport --release v1.0.0 --team-label app
+    ```
+    Sample Output: [Release Report](output/Release_Report.png)
+
+4. **Generate Report for Target Cluster**:
     ```bash
     kubereport --kubeconfig ~/.kube/config
     ```
 
-4. **Schedule Reports**:
+5. **Schedule Reports**:
     ```bash
     kubereport --schedule "* * * * *"
     ```
 
-5. **Send Reports via Email**:
+6. **Send Reports via Email**:
     Use the following command to send reports through email:
     ```bash
     kubereport --recipient recipient@example.com --sender sender@example.com --password xxxxxxxx --subject "Mail Subject" --body "Mail Body" --smtp-server "smtp.gmail.com" --smtp-port "587" --use-tls true
