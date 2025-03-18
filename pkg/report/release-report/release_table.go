@@ -11,9 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// GenerateDeploymentImageTable creates a PDF table summarizing deployments and container images.
 func GenerateDeploymentImageTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Clientset, releaseVersion, teamLabel string) error {
-	// Fetch all deployments
 	deploymentList, err := clientset.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("error fetching deployments: %v", err)
@@ -30,23 +28,20 @@ func GenerateDeploymentImageTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Client
 
 	// Define column widths
 	colWidths := map[string]float64{
-		"Deployment":             70.0,
-		"Application Image Name": 90.0,
-		"Version":                25.0,
+		"Deployment":             60.0,
+		"Application Image Name": 85.0,
+		"Version":                30.0,
 	}
 
 	headers := []string{"Deployment"}
 
-	// Add "Init Containers Image & Version" after "Deployment" only if needed
 	if hasInitContainers {
-		colWidths["Init Containers Image & Version"] = 86.0
+		colWidths["Init Containers Image & Version"] = 85.0
 		headers = append(headers, "Init Containers Image & Version")
 	}
 
-	// Add remaining columns
 	headers = append(headers, "Application Image Name", "Version")
 
-	// Add "Team Name" column if team label is provided
 	includeTeamColumn := teamLabel != ""
 	if includeTeamColumn {
 		colWidths["Team Name"] = 40.0
@@ -62,8 +57,7 @@ func GenerateDeploymentImageTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Client
 		pdf.Ln(-1)
 	}
 
-	// Add headers to the first page
-	renderHeaders()
+	renderHeaders() // Add headers to the first page
 
 	// Iterate over deployments
 	for _, deployment := range deploymentList.Items {
@@ -78,66 +72,63 @@ func GenerateDeploymentImageTable(pdf *gofpdf.Fpdf, clientset *kubernetes.Client
 			}
 		}
 
-		// Check if we need to add a new page
-		rowHeight := 8.0
+		rowData := []string{deploymentName}
+		if hasInitContainers {
+			rowData = append(rowData, initImages)
+		}
+		rowData = append(rowData, mainImageNames, mainVersions)
+		if includeTeamColumn {
+			rowData = append(rowData, teamName)
+		}
+
+		// Calculate row height
+		rowHeight := calculateMaxHeight(pdf, rowData, colWidths, headers, hasInitContainers, includeTeamColumn)
 		_, pageHeight := pdf.GetPageSize()
 		if pdf.GetY()+rowHeight > pageHeight-20 {
 			pdf.AddPage()
-			renderHeaders() // Reprint headers
+			renderHeaders()
 		}
 
-		// Print Deployment Name
-		pdf.SetFont("Arial", "", 7)
-		pdf.CellFormat(colWidths["Deployment"], rowHeight, deploymentName, "1", 0, "L", false, 0, "")
-
-		// Print Init Containers Image & Version (if applicable)
-		if hasInitContainers {
-			startX := pdf.GetX()
-			startY := pdf.GetY()
-			pdf.MultiCell(colWidths["Init Containers Image & Version"], rowHeight, initImages, "1", "L", false)
-			pdf.SetXY(startX+colWidths["Init Containers Image & Version"], startY)
-		}
-
-		// Print Application Image Name Image Name
-		startX := pdf.GetX()
 		startY := pdf.GetY()
-		pdf.MultiCell(colWidths["Application Image Name"], rowHeight, mainImageNames, "1", "L", false)
-		pdf.SetXY(startX+colWidths["Application Image Name"], startY)
+		pdf.SetFont("Arial", "", 7)
 
-		// Print Application Image Name Version
-		startX = pdf.GetX()
-		startY = pdf.GetY()
-		pdf.MultiCell(colWidths["Version"], rowHeight, mainVersions, "1", "L", false)
-		pdf.SetXY(startX+colWidths["Version"], startY)
+		// Manually print each column to maintain proper alignment
+		for i, text := range rowData {
+			x := pdf.GetX()
+			colWidth := colWidths[headers[i]]
 
-		// Print Team Name (if applicable)
-		if includeTeamColumn {
-			pdf.CellFormat(colWidths["Team Name"], rowHeight, teamName, "1", 0, "C", false, 0, "")
+			// Check if text needs MultiCell (if it might wrap)
+			lines := pdf.SplitLines([]byte(text), colWidth)
+			if len(lines) > 1 {
+				pdf.MultiCell(colWidth, 4, text, "1", "L", false)
+			} else {
+				pdf.CellFormat(colWidth, rowHeight, text, "1", 0, "L", false, 0, "")
+			}
+
+			// Move X position for the next column
+			pdf.SetXY(x+colWidth, startY)
 		}
 
-		pdf.Ln(-1) // Move to the next row
+		// Move to the next row without adding an extra blank row
+		pdf.SetY(startY + rowHeight)
 	}
 
 	return nil
 }
 
-// Extracts init container images and separates main container image names and versions.
 func getImageVersions(deployment appsv1.Deployment, hasInitContainers bool) (string, string, string) {
 	var initImages []string
 	var mainImageNames []string
 	var mainVersions []string
 
-	// Init Containers
 	for _, container := range deployment.Spec.Template.Spec.InitContainers {
 		initImages = append(initImages, container.Image)
 	}
 
-	// Application Image Name - Extract Image Name and Version separately
 	for _, container := range deployment.Spec.Template.Spec.Containers {
 		imageParts := strings.Split(container.Image, ":")
-		imageName := imageParts[0] // Extracts the repository name
+		imageName := imageParts[0]
 
-		// If the version is missing, assume "latest"
 		imageVersion := "latest"
 		if len(imageParts) > 1 {
 			imageVersion = imageParts[1]
@@ -147,10 +138,28 @@ func getImageVersions(deployment appsv1.Deployment, hasInitContainers bool) (str
 		mainVersions = append(mainVersions, imageVersion)
 	}
 
-	// If there are no init containers, return "-" to ensure column visibility
 	if hasInitContainers && len(initImages) == 0 {
 		initImages = append(initImages, "-")
 	}
 
 	return strings.Join(initImages, ", "), strings.Join(mainImageNames, ", "), strings.Join(mainVersions, ", ")
+}
+
+func calculateMaxHeight(pdf *gofpdf.Fpdf, texts []string, colWidths map[string]float64, headers []string, hasInitContainers bool, includeTeamColumn bool) float64 {
+	maxHeight := 8.0
+
+	for i, text := range texts {
+		if headers[i] == "Init Containers Image & Version" && !hasInitContainers {
+			continue
+		}
+		if headers[i] == "Team Name" && !includeTeamColumn {
+			continue
+		}
+		lines := pdf.SplitLines([]byte(text), colWidths[headers[i]])
+		height := float64(len(lines)) * 4
+		if height > maxHeight {
+			maxHeight = height
+		}
+	}
+	return maxHeight
 }
