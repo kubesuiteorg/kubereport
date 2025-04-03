@@ -15,6 +15,8 @@ You can view the demo in the [test](test/README.md).
 
 ## Your Support Matters
 
+⭐ [Give a star to our repository on GitHub](https://github.com/kubesuiteorg/kubereport) to show your support! It helps us improve and reach more Kubernetes enthusiasts.
+
 KubeReport is a community-driven open-source project, maintained with dedication and effort. We are committed to keeping it free for everyone!
 
 If KubeReport enhances your Kubernetes experience, please consider supporting us! Your [sponsorship](https://buymeacoffee.com/sachinran) will help us continue development and deliver valuable updates. Every contribution counts, and we greatly appreciate your support!
