@@ -23,7 +23,7 @@ If KubeReport enhances your Kubernetes experience, please consider supporting us
 
 ## Documentation
 
-For detailed instructions on installation, usage, customization, and more, please refer to our [KubeReport documentation site](https://www.kubesuite.org/doc).
+For detailed instructions on installation, usage, customization, and more, please refer to our [KubeReport documentation site](https://kubesuite.softr.app/doc).
 
 ## Installation
 
